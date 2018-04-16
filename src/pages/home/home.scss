@@ -1,3 +1,23 @@
 page-home {
+  #map {
+    height: 95%;
+    width: 100%;
+  }
+  ion-card {
+      max-height: 200px;
+      overflow: scroll;
+      position: absolute;
+      z-index: 1;
+  }
+  button{
+    margin-top: -80px!important;
+    height: 93px!important;
+    font-weight: bold;
+  }
 
+}
+.success {
+  > div{
+       background-color:#32db64!important;
+   }
 }
