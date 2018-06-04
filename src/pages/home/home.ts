@@ -10,20 +10,33 @@ declare var google: any;
   templateUrl: 'home.html'
 })
 export class HomePage {
-
   @ViewChild('map') mapElement: ElementRef;
   @ViewChild('directionsPanel') directionsPanel: ElementRef;
   map: any;
   markers = [];
-  ref = firebase.database().ref('geolocations/');
+  ref = firebase.database().ref('/geolocation');
   parked = false;
+  starting = false;
+  lat;
+  lng;
+  alreadyParked;
+
   constructor(public navCtrl: NavController,
     public platform: Platform,
     private geolocation: Geolocation,
     private device: Device,
     private toastCtrl: ToastController) {
     platform.ready().then(() => {
-      this.initMap()
+      this.initMap();
+      this.displayCar();
+      this.ref.on('value', (data) => {
+        if(data.val().current){
+          this.alreadyParked = true
+          console.log(data.val().current)
+        }else{
+          this.alreadyParked = false
+        }
+      });
     });
   }
 
@@ -31,10 +44,10 @@ export class HomePage {
     this.geolocation.getCurrentPosition().then((resp) => {
       let mylocation = new google.maps.LatLng(resp.coords.latitude,resp.coords.longitude);
       this.map = new google.maps.Map(this.mapElement.nativeElement, {
-        zoom: 15,
+        zoom: 18,
         center: mylocation
       });
-      this.addMarker(mylocation, 'assets/imgs/car2.png');
+      this.addMarker(mylocation, 'assets/imgs/location.png');
     });
   }
 
@@ -45,44 +58,63 @@ export class HomePage {
       icon: image
     });
     this.markers.push(marker);
-    console.log(this.markers)
   }
 
-  parkCar() {
+  setMapOnAll(map) {
+    for (var i = 0; i < this.markers.length; i++) {
+      this.markers[i].setMap(map);
+    }
+  }
+
+  displayCar() {
+    this.ref.on('value', data => {
+      if(data.val().current === true){
+        this.parked = true;
+        this.starting = null;
+        this.lat = data.val().lat;
+        this.lng = data.val().lng;
+        let image = 'assets/imgs/car2.png';
+        let carlocation = new google.maps.LatLng(data.val().lat ,data.val().lng);
+        this.addMarker(carlocation,image);
+      }else{
+        console.log('no car')
+      }
+    });
+  }
+
+   parkCar() {
     this.geolocation.getCurrentPosition().then((resp) => {
-      let toast = this.toastCtrl.create({
-        message: 'Your car location has been saved!',
-        duration: 3000,
-        position: 'top',
-        cssClass: 'success'
-      });
-      toast.present();
       this.parked = true;
-      this.starting = null;
-      console.log(resp.coords.latitude)
-      console.log(resp.coords.longitude)
-      firebase.database().ref('/geolocation').set({
-        lat: resp.coords.latitude,
-        lng: resp.coords.longitude
-      });
+      this.starting = false;
+      if(this.alreadyParked === false){
+        let toast = this.toastCtrl.create({
+           message: 'Car successfully parked! Location has been saved.',
+           duration: 3000,
+           position: 'top',
+           cssClass: 'success'
+         });
+        toast.present();
+        firebase.database().ref('/geolocation').set({
+            lat: resp.coords.latitude,
+            lng: resp.coords.longitude,
+            current: true
+        });
+      }else{
+        console.log('already parked')
+      }
     });
   }
 
   startNavigating(){
     this.starting = true;
     this.parked = null;
-
     this.geolocation.getCurrentPosition().then((resp) => {
-
       let mylocation = new google.maps.LatLng(resp.coords.latitude,resp.coords.longitude);
       let directionsService = new google.maps.DirectionsService;
       let directionsDisplay = new google.maps.DirectionsRenderer;
-
       directionsDisplay.setMap(this.map);
-      directionsDisplay.setPanel(this.directionsPanel.nativeElement);
-
-      let locationRef = firebase.database().ref('/geolocation');
-      locationRef.on('value', function(snapshot) {
+      // directionsDisplay.setPanel(this.directionsPanel.nativeElement);
+      this.ref.on('value', function(snapshot) {
         directionsService.route({
             origin: mylocation,
             destination: snapshot.val(),
@@ -99,8 +131,14 @@ export class HomePage {
   }
 
   deleteMarkers() {
-    this.markers = [];
+    this.ref.set({
+      current: false
+    }).then(()=> {
+      this.starting = false;
+      this.parked = false;
+      this.markers = [];
+      this.initMap();
+    });
   }
-
 
 }
