@@ -5,15 +5,6 @@ import { SplashScreen } from '@ionic-native/splash-screen';
 import * as firebase from 'firebase';
 import { HomePage } from '../pages/home/home';
 
-const config = {
-   apiKey: "AIzaSyB07YMY5WBfP7ixukpRlsqltWGMpyWaxl4",
-   authDomain: "carfinder-2becc.firebaseapp.com",
-   databaseURL: "https://carfinder-2becc.firebaseio.com",
-   projectId: "carfinder-2becc",
-   storageBucket: "carfinder-2becc.appspot.com",
-   messagingSenderId: "534536025719"
-};
-
 @Component({
   templateUrl: 'app.html'
 })
